@@ -1,5 +1,7 @@
 # Python virtual environment
 ml_env/
+dl_env/
+dl_env_conda/
 
 # Python cache files
 __pycache__/
