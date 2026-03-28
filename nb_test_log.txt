@@ -1,0 +1,142 @@
+Failed: c:\AI-Projects\MyAI\DL\Anomaly_Detection_DL.ipynb
+Traceback (most recent call last):
+  File "<string>", line 18, in <module>
+  File "C:\AI-Projects\MyAI\DL\dl_env\Lib\site-packages\nbconvert\preprocessors\execute.py", line 103, in preprocess
+    self.preprocess_cell(cell, resources, index)
+  File "C:\AI-Projects\MyAI\DL\dl_env\Lib\site-packages\nbconvert\preprocessors\execute.py", line 124, in preprocess_cell
+    cell = self.execute_cell(cell, index, store_history=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\AI-Projects\MyAI\DL\dl_env\Lib\site-packages\jupyter_core\utils\__init__.py", line 165, in wrapped
+    return loop.run_until_complete(inner)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\ProgramData\anaconda3\Lib\asyncio\base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "C:\AI-Projects\MyAI\DL\dl_env\Lib\site-packages\nbclient\client.py", line 1062, in async_execute_cell
+    await self._check_raise_for_error(cell, cell_index, exec_reply)
+  File "C:\AI-Projects\MyAI\DL\dl_env\Lib\site-packages\nbclient\client.py", line 918, in _check_raise_for_error
+    raise CellExecutionError.from_cell_and_msg(cell, exec_reply_content)
+nbclient.exceptions.CellExecutionError: An error occurred while executing the following cell:
+------------------
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+
+# Normal data: 20D Gaussian clusters
+np.random.seed(42)
+torch.manual_seed(42)
+X_normal = np.random.randn(1000, 20).astype(np.float32)
+# Anomalies: Shifted distribution
+X_anomaly = np.random.randn(50, 20).astype(np.float32) * 3 + 5  
+
+# --- 1. Visualize Data Distribution using PCA ---
+pca = PCA(n_components=2)
+X_normal_2d = pca.fit_transform(X_normal)
+X_anomaly_2d = pca.transform(X_anomaly)
+
+plt.figure(figsize=(10, 5))
+plt.scatter(X_normal_2d[:, 0], X_normal_2d[:, 1], alpha=0.3, color='#3498db', label='Normal Data')
+plt.scatter(X_anomaly_2d[:, 0], X_anomaly_2d[:, 1], color='#e74c3c', marker='X', s=80, label='Anomalies')
+plt.title('2D PCA Projection of the 20-Dimensional Dataset')
+plt.xlabel('Principal Component 1')
+plt.ylabel('Principal Component 2')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+
+# --- 2. Build and Train Autoencoder ---
+class Autoencoder(nn.Module):
+    def __init__(self, input_dim, latent_dim=4):
+        super().__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(input_dim, 16), nn.ReLU(),
+            nn.Linear(16, latent_dim), nn.ReLU()
+        )
+        self.decoder = nn.Sequential(
+            nn.Linear(latent_dim, 16), nn.ReLU(),
+            nn.Linear(16, input_dim)
+        )
+        
+    def forward(self, x):
+        return self.decoder(self.encoder(x))
+
+ae = Autoencoder(input_dim=20)
+criterion = nn.MSELoss()
+optimizer = optim.Adam(ae.parameters(), lr=0.01)
+dataset = TensorDataset(torch.tensor(X_normal))
+dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
+
+ae.train()
+for epoch in range(50):
+    for batch in dataloader:
+        x = batch[0]
+        optimizer.zero_grad()
+        loss = criterion(ae(x), x)
+        loss.backward()
+        optimizer.step()
+
+ae.eval()
+def reconstruction_error(model, data):
+    with torch.no_grad():
+        preds = model(torch.tensor(data))
+    return np.mean(np.square(data - preds.numpy()), axis=1)
+
+normal_errs = reconstruction_error(ae, X_normal)
+anomaly_errs = reconstruction_error(ae, X_anomaly)
+threshold = np.percentile(normal_errs, 99)
+
+print(f"Threshold (99th pct of normal): {threshold:.4f}")
+print(f"Avg: Normal errors: {normal_errs.mean():.4f} | Anomaly errors: {anomaly_errs.mean():.4f}")
+print(f"Anomalies detected: {(anomaly_errs > threshold).sum()}/{len(anomaly_errs)}")
+
+# --- 3. Visualize Reconstruction Errors ---
+plt.figure(figsize=(10, 5))
+plt.hist(normal_errs, bins=50, alpha=0.7, color='#2ecc71', label='Normal Data')
+plt.hist(anomaly_errs, bins=25, alpha=0.8, color='#e74c3c', label='Anomalies')
+plt.axvline(threshold, color='black', linestyle='dashed', linewidth=2, label=f'Threshold ({threshold:.2f})')
+plt.title('Reconstruction Error Distribution (Autoencoder)')
+plt.xlabel('Reconstruction Mean Squared Error')
+plt.ylabel('Frequency')
+plt.legend()
+plt.grid(True, alpha=0.3)
+plt.show()
+
+------------------
+
+
+[31m------------------------------[39m
+[31mOSError[39mTraceback (most recent call last)
+[36mCell[39m[36m [39m[32mIn[2][39m[32m, line 2[39m
+[32m      1[39m [38;5;28;01mimport[39;00m[38;5;250m [39m[34;01mnumpy[39;00m[38;5;250m [39m[38;5;28;01mas[39;00m[38;5;250m [39m[34;01mnp[39;00m
+[32m----> [39m[32m2[39m [38;5;28;01mimport[39;00m[38;5;250m [39m[34;01mtorch[39;00m
+[32m      3[39m [38;5;28;01mimport[39;00m[38;5;250m [39m[34;01mtorch[39;00m[34;01m.[39;00m[34;01mnn[39;00m[38;5;250m [39m[38;5;28;01mas[39;00m[38;5;250m [39m[34;01mnn[39;00m
+[32m      4[39m [38;5;28;01mimport[39;00m[38;5;250m [39m[34;01mtorch[39;00m[34;01m.[39;00m[34;01moptim[39;00m[38;5;250m [39m[38;5;28;01mas[39;00m[38;5;250m [39m[34;01moptim[39;00m
+
+[36mFile [39m[32mC:\AI-Projects\MyAI\DL\dl_env\Lib\site-packages\torch\__init__.py:285[39m
+[32m    281[39m                     [38;5;28;01mraise[39;00m err
+[32m    283[39m         kernel32.SetErrorMode(prev_error_mode)
+[32m--> [39m[32m285[39m     [43m_load_dll_libraries[49m[43m([49m[43m)[49m
+[32m    286[39m     [38;5;28;01mdel[39;00m _load_dll_libraries
+[32m    289[39m [38;5;28;01mdef[39;00m[38;5;250m [39m[34m_get_cuda_dep_paths[39m(path: [38;5;28mstr[39m, lib_folder: [38;5;28mstr[39m, lib_name: [38;5;28mstr[39m) -> [38;5;28mlist[39m[[38;5;28mstr[39m]:
+[32m    290[39m     [38;5;66;03m# Libraries can either be in[39;00m
+[32m    291[39m     [38;5;66;03m# path/nvidia/lib_folder/lib or[39;00m
+[32m    292[39m     [38;5;66;03m# path/nvidia/cuXX/lib (since CUDA 13.0) or[39;00m
+[32m    293[39m     [38;5;66;03m# path/lib_folder/lib[39;00m
+
+[36mFile [39m[32mC:\AI-Projects\MyAI\DL\dl_env\Lib\site-packages\torch\__init__.py:268[39m, in [36m_load_dll_libraries[39m[34m()[39m
+[32m    264[39m     err = ctypes.WinError(last_error)
+[32m    265[39m     err.strerror += (
+[32m    266[39m         [33mf[39m[33m'[39m[33m Error loading [39m[33m"[39m[38;5;132;01m{[39;00mdll[38;5;132;01m}[39;00m[33m"[39m[33m or one of its dependencies.[39m[33m'[39m
+[32m    267[39m     )
+[32m--> [39m[32m268[39m     [38;5;28;01mraise[39;00m err
+[32m    269[39m [38;5;28;01melif[39;00m res [38;5;129;01mis[39;00m [38;5;129;01mnot[39;00m [38;5;28;01mNone[39;00m:
+[32m    270[39m     is_loaded = [38;5;28;01mTrue[39;00m
+
+[31mOSError[39m: [WinError 1114] A dynamic link library (DLL) initialization routine failed. Error loading "C:\AI-Projects\MyAI\DL\dl_env\Lib\site-packages\torch\lib\c10.dll" or one of its dependencies.
+
+
+Success: c:\AI-Projects\MyAI\DL\CNN_Architectures.ipynb

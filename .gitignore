@@ -2,6 +2,9 @@
 ml_env/
 dl_env/
 dl_env_conda/
+ai_env/
+aai_env/
+.venv/
 
 # Python cache files
 __pycache__/
