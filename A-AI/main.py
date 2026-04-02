@@ -50,57 +50,80 @@ def main():
         print("\nType 'exit', 'quit', or 'terminate' to end session.")
         print("="*70 + "\n")
 
+        from langchain_core.messages import HumanMessage, ToolMessage
+
         # Continuous user input loop
         while True:
             try:
                 user_input = input("\n[You] >>> ")
-                
+
                 if user_input.strip().lower() in ['exit', 'quit', 'terminate']:
                     print("\n✓ Gracefully shutting down agent.")
                     break
-                    
+
                 if not user_input.strip():
                     print("(empty input - please provide a query)")
                     continue
-                
+
                 print("\n[Agent Processing...]")
-                
-                # Create message and invoke LLM
-                message = HumanMessage(content=user_input)
-                response = llm_with_tools.invoke([message])
-                
-                # Handle tool calls
-                if hasattr(response, 'tool_calls') and response.tool_calls:
-                    print("\n[Agent Analysis]")
+
+                messages = [HumanMessage(content=user_input)]
+
+                # Step 1: First LLM call
+                response = llm_with_tools.invoke(messages)
+                print(f"✓ LLM response received: {response.content}")
+
+                # Step 2: Tool execution loop
+                while hasattr(response, "tool_calls") and response.tool_calls:
+                    print("\n[Tool Calls Detected]")
+
+                    tool_messages = []
+
                     for tool_call in response.tool_calls:
-                        tool_name = tool_call['name']
-                        tool_args = tool_call['args']
-                        
-                        # Execute the appropriate tool
-                        if tool_name == 'character_counter':
+                        print(f"→ Tool call: {tool_call}")
+                        tool_name = tool_call["name"]
+                        tool_args = tool_call["args"]
+
+                        print(f"→ Calling tool: {tool_name} with args: {tool_args}")
+
+                        # Execute tool
+                        if tool_name == "character_counter":
                             result = character_counter.invoke(tool_args)
-                        elif tool_name == 'word_counter':
+                        elif tool_name == "word_counter":
                             result = word_counter.invoke(tool_args)
-                        elif tool_name == 'text_analyzer':
+                        elif tool_name == "text_analyzer":
                             result = text_analyzer.invoke(tool_args)
                         else:
-                            result = f"Unknown tool: {tool_name}"
-                        
-                        print(f"  {tool_name}: {result}")
-                else:
-                    # Direct response from LLM
-                    print(f"\n[Agent Response]\n{response.content}")
-                
-                print("\n" + "-"*70)
-                
+                            result = "Unknown tool"
+
+                        print(f"✓ Tool result: {result}")
+
+                        # IMPORTANT: Send result back to LLM
+                        tool_messages.append(
+                            ToolMessage(
+                                content=result,
+                                tool_call_id=tool_call["id"]
+                            )
+                        )
+
+                    # Add assistant message + tool results
+                    messages.append(response)
+                    messages.extend(tool_messages)
+
+                    # Call LLM again with tool results
+                    response = llm_with_tools.invoke(messages)
+
+                # Final response
+                print(f"\n[Agent Response]\n{response.content}")
+                print("\n" + "-" * 70)
+
             except KeyboardInterrupt:
                 print("\n\n✓ Interrupted by user.")
                 break
             except Exception as error:
                 print(f"\n✗ Error during execution: {error}")
-                print("Troubleshooting: Ensure Ollama is running with 'ollama serve'")
-                print("Continuing to next query...\n")
-    
+                print("Continuing...\n")
+
     except Exception as init_error:
         print(f"\n✗ Initialization Error: {init_error}\n")
         print("TROUBLESHOOTING STEPS:")
